@@ -7,7 +7,8 @@ use Ductong\XuongOop\Commons\Helper;
 
 class DashboardController extends Controller
 {
-    public function dashboard() {        
+    public function dashboard()
+    {
         $this->renderViewAdmin(__FUNCTION__);
     }
 }

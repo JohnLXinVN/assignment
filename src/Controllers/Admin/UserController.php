@@ -3,6 +3,7 @@
 namespace Ductong\XuongOop\Controllers\Admin;
 
 use Ductong\XuongOop\Commons\Controller;
+use Ductong\XuongOop\Commons\Helper;
 use Ductong\XuongOop\Models\User;
 use Rakit\Validation\Validator;
 
@@ -17,11 +18,16 @@ class UserController extends Controller
 
     public function index()
     {
+        $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
+
         [$users, $totalPage] = $this->user->paginate($_GET['page'] ?? 1);
+
+        // Helper::debug($users);
 
         $this->renderViewAdmin('users.index', [
             'users' => $users,
-            'totalPage' => $totalPage
+            'totalPage' => $totalPage,
+            "currentPage" => $currentPage
         ]);
     }
 
@@ -34,35 +40,39 @@ class UserController extends Controller
     {
         $validator = new Validator;
         $validation = $validator->make($_POST + $_FILES, [
-            'name'                  => 'required|max:50',
-            'email'                 => 'required|email',
-            'password'              => 'required|min:6',
-            'confirm_password'      => 'required|same:password',
-            'avatar'                => 'uploaded_file:0,2M,png,jpg,jpeg',
+            'user_name' => 'required|max:50',
+            'ho_ten' => 'required|max:50',
+            'email' => 'required|email',
+            'password' => 'required|min:6',
+            'confirm_password' => 'required|same:password',
+            'image' => 'uploaded_file:0,2M,png,jpg,jpeg',
         ]);
         $validation->validate();
 
         if ($validation->fails()) {
             $_SESSION['errors'] = $validation->errors()->firstOfAll();
-
+            // Helper::debug($_SESSION['errors']);
             header('Location: ' . url('admin/users/create'));
             exit;
         } else {
             $data = [
-                'name'     => $_POST['name'],
-                'email'    => $_POST['email'],
+                'user_name' => $_POST['user_name'],
+                'email' => $_POST['email'],
+                'ho_ten' => $_POST['ho_ten'],
+                'kich_hoat' => $_POST['kich_hoat'],
+                'vai_tro' => $_POST['vai_tro'],
                 'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
             ];
+            // Helper::debug($data);
+            if (isset($_FILES['image']) && $_FILES['image']['size'] > 0) {
 
-            if (isset($_FILES['avatar']) && $_FILES['avatar']['size'] > 0) {
-
-                $from = $_FILES['avatar']['tmp_name'];
-                $to = 'assets/uploads/' . time() . $_FILES['avatar']['name'];
+                $from = $_FILES['image']['tmp_name'];
+                $to = 'assets/uploads/' . time() . $_FILES['image']['name'];
 
                 if (move_uploaded_file($from, PATH_ROOT . $to)) {
-                    $data['avatar'] = $to;
+                    $data['image'] = $to;
                 } else {
-                    $_SESSION['errors']['avatar'] = 'Upload Không thành công';
+                    $_SESSION['errors']['image'] = 'Upload Không thành công';
 
                     header('Location: ' . url('admin/users/create'));
                     exit;
@@ -99,14 +109,17 @@ class UserController extends Controller
 
     public function update($id)
     {
+        
         $user = $this->user->findByID($id);
 
         $validator = new Validator;
         $validation = $validator->make($_POST + $_FILES, [
-            'name'                  => 'required|max:50',
-            'email'                 => 'required|email',
-            'password'              => 'min:6',
-            'avatar'                => 'uploaded_file:0,2M,png,jpg,jpeg',
+            'email' => 'required|email',
+            'user_name' => 'required|max:50',
+            'ho_ten' => 'required|max:50',
+            'password' => 'nullable|min:6',
+            'confirm_password' => 'nullable|same:password',
+            'image' => 'uploaded_file:0,2M,png,jpg,jpeg',
         ]);
         $validation->validate();
 
@@ -117,24 +130,27 @@ class UserController extends Controller
             exit;
         } else {
             $data = [
-                'name'     => $_POST['name'],
-                'email'    => $_POST['email'],
+                'email' => $_POST["email"],
+                'user_name' => $_POST["user_name"],
+                'ho_ten' => $_POST["ho_ten"],
+                'kich_hoat'=> $_POST["kich_hoat"],
+                'vai_tro' => $_POST["vai_tro"],
                 'password' => !empty($_POST['password'])
                     ? password_hash($_POST['password'], PASSWORD_DEFAULT) : $user['password'],
             ];
 
             $flagUpload = false;
-            if (isset($_FILES['avatar']) && $_FILES['avatar']['size'] > 0) {
+            if (isset($_FILES['image']) && $_FILES['image']['size'] > 0) {
 
                 $flagUpload = true;
 
-                $from = $_FILES['avatar']['tmp_name'];
-                $to = 'assets/uploads/' . time() . $_FILES['avatar']['name'];
+                $from = $_FILES['image']['tmp_name'];
+                $to = 'assets/uploads/' . time() . $_FILES['image']['name'];
 
                 if (move_uploaded_file($from, PATH_ROOT . $to)) {
-                    $data['avatar'] = $to;
+                    $data['image'] = $to;
                 } else {
-                    $_SESSION['errors']['avatar'] = 'Upload Không thành công';
+                    $_SESSION['errors']['image'] = 'Upload Không thành công';
 
                     header('Location: ' . url("admin/users/{$user['id']}/edit"));
                     exit;
@@ -145,16 +161,16 @@ class UserController extends Controller
 
             if (
                 $flagUpload
-                && $user['avatar']
-                && file_exists(PATH_ROOT . $user['avatar'])
+                && $user['image']
+                && file_exists(PATH_ROOT . $user['image'])
             ) {
-                unlink(PATH_ROOT . $user['avatar']);
+                unlink(PATH_ROOT . $user['image']);
             }
 
             $_SESSION['status'] = true;
             $_SESSION['msg'] = 'Thao tác thành công';
 
-            header('Location: ' . url("admin/users/{$user['id']}/edit"));
+            header('Location: ' . url("admin/users"));
             exit;
         }
     }
@@ -166,10 +182,10 @@ class UserController extends Controller
         $this->user->delete($id);
 
         if (
-            $user['avatar']
-            && file_exists(PATH_ROOT . $user['avatar'])
+            $user['image']
+            && file_exists(PATH_ROOT . $user['image'])
         ) {
-            unlink(PATH_ROOT . $user['avatar']);
+            unlink(PATH_ROOT . $user['image']);
         }
 
         header('Location: ' . url('admin/users'));

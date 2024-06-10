@@ -15,12 +15,12 @@ class Model
     public function __construct()
     {
         $connectionParams = [
-            'dbname'    => $_ENV['DB_NAME'],
-            'user'      => $_ENV['DB_USERNAME'],
-            'password'  => $_ENV['DB_PASSWORD'],
-            'host'      => $_ENV['DB_HOST'],
-            'port'      => $_ENV['DB_PORT'],
-            'driver'    => $_ENV['DB_DRIVER'],
+            'dbname' => $_ENV['DB_NAME'],
+            'user' => $_ENV['DB_USERNAME'],
+            'password' => $_ENV['DB_PASSWORD'],
+            'host' => $_ENV['DB_HOST'],
+            'port' => $_ENV['DB_PORT'],
+            'driver' => $_ENV['DB_DRIVER'],
         ];
 
         $this->conn = DriverManager::getConnection($connectionParams);
@@ -32,35 +32,35 @@ class Model
     public function all()
     {
         return $this->queryBuilder
-        ->select('*')
-        ->from($this->tableName)
-        ->orderBy('id', 'desc')
-        ->fetchAllAssociative();
+            ->select('*')
+            ->from($this->tableName)
+            ->orderBy('id', 'desc')
+            ->fetchAllAssociative();
     }
 
     public function count()
     {
         return $this->queryBuilder
-        ->select("COUNT(*) as $this->tableName")
-        ->from($this->tableName)
-        ->fetchOne();
+            ->select("COUNT(*) as $this->tableName")
+            ->from($this->tableName)
+            ->fetchOne();
     }
 
-    public function paginate($page = 1, $perPage = 5)
+    public function paginate($page = 1, $perPage = 4)
     {
-        $queryBuilder = clone($this->queryBuilder);
+        $queryBuilder = clone ($this->queryBuilder);
 
         $totalPage = ceil($this->count() / $perPage);
 
         $offset = $perPage * ($page - 1);
 
         $data = $queryBuilder
-        ->select('*')
-        ->from($this->tableName)
-        ->setFirstResult($offset)
-        ->setMaxResults($perPage)
-        ->orderBy('id', 'desc')
-        ->fetchAllAssociative();
+            ->select('*')
+            ->from($this->tableName)
+            ->setFirstResult($offset)
+            ->setMaxResults($perPage)
+            ->orderBy('id', 'desc')
+            ->fetchAllAssociative();
 
         return [$data, $totalPage];
     }
@@ -81,9 +81,9 @@ class Model
             $query = $this->queryBuilder->insert($this->tableName);
 
             $index = 0;
-            foreach($data as $key => $value) {
+            foreach ($data as $key => $value) {
                 $query->setValue($key, '?')->setParameter($index, $value);
-                
+
                 ++$index;
             }
 
@@ -91,7 +91,7 @@ class Model
 
             return true;
         }
-        
+
         return false;
     }
 
@@ -101,7 +101,7 @@ class Model
             $query = $this->queryBuilder->update($this->tableName);
 
             $index = 0;
-            foreach($data as $key => $value) {
+            foreach ($data as $key => $value) {
                 $query->set($key, '?')->setParameter($index, $value);
 
                 ++$index;
@@ -113,12 +113,34 @@ class Model
 
             return true;
         }
-        
+
+        return false;
+    }
+
+    public function updateByCategory($id, array $data)
+    {
+        if (!empty($data)) {
+            $query = $this->queryBuilder->update($this->tableName);
+
+            $index = 0;
+            foreach ($data as $key => $value) {
+                $query->set($key, '?')->setParameter($index, $value);
+
+                ++$index;
+            }
+
+            $query->where('category_id = ?')
+                ->setParameter(count($data), $id)
+                ->executeQuery();
+
+            return true;
+        }
+
         return false;
     }
 
     public function delete($id)
-    {        
+    {
         return $this->queryBuilder
             ->delete($this->tableName)
             ->where('id = ?')
